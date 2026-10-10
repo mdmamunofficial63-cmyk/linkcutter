@@ -17,6 +17,8 @@ button:active{transform:scale(.97)}
 .s.d{color:#f87171}
 .f{background:var(--in);border:1px solid var(--bd);box-shadow:none;padding:7px 12px;font-size:12.5px;color:var(--mut);white-space:nowrap}.f.on{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border-color:transparent}
 #chips{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+#ls{max-height:58vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px}
+.wb{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:10px;border-radius:14px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);font-size:12.5px;color:#fbbf24;line-height:1.4}
 .k{border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:10px;background:var(--in)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .top b{font-size:16px}.top small{display:block;color:var(--mut);font-size:12px;margin-top:3px;line-height:1.45}
@@ -34,10 +36,10 @@ button:active{transform:scale(.97)}
 <div class="c"><div class="l">Generate keys</div><input id="lb" placeholder="Name (e.g. Rahim)"><div class="row2"><input class="q" id="ct" type="number" inputmode="numeric" min="1" max="20" value="1"><button id="cr">Generate</button></div></div>
 <div class="c" id="new"></div>
 <div class="c"><div class="l"><span>Keys</span><button class="s" id="ca">Copy all</button></div>
-<input id="sr" placeholder="Search by name or ID"><div id="chips"></div><div id="ls"><div class="mt">Load keys to see them here.</div></div></div>
+<input id="sr" placeholder="Search by name or ID"><div id="chips"></div><div id="wn"></div><div id="ls"><div class="mt">Load keys to see them here.</div></div></div>
 <div id="toast"></div>
 <script>
-var $=function(i){return document.getElementById(i)},DATA=[],VIS=[],F='all',Q='',tt;
+var $=function(i){return document.getElementById(i)},DATA=[],VIS=[],LOADED=false,F='all',Q='',tt;
 var SN={free:'Available',used:'In use',blocked:'Blocked'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on')},1600)}
@@ -51,20 +53,21 @@ function dt(t){return t?new Date(t).toLocaleString():''}
 function row(x){
   var info=[x.id];if(x.at)info.push('Linked '+dt(x.at));if(x.last)info.push('Last active '+dt(x.last));
   return '<div class="k"><div class="top"><div><b>'+(esc(x.label)||'Unnamed')+'</b><small>'+info.join(' \u00b7 ')+'</small></div><span class="t '+x.state+'">'+SN[x.state]+'</span></div>'+
-  (x.key?'<div class="kv"><span>'+mask(x.key)+'</span><button class="s" data-o="copy" data-i="'+x.id+'">Copy</button></div>':'<div class="kv no">Key not stored. Regenerate to copy it.</div>')+
+  (x.key?'<div class="kv"><span>'+mask(x.key)+'</span><button class="s" data-o="copy" data-i="'+x.id+'">Copy</button></div>':'<div class="kv no"><span>Key not stored</span><button class="s" data-o="regen" data-i="'+x.id+'">Generate new key</button></div>')+
   '<div class="acts"><button class="s" data-o="rename" data-i="'+x.id+'">Rename</button><button class="s" data-o="reset" data-i="'+x.id+'">Reset device</button><button class="s" data-o="block" data-i="'+x.id+'">Block</button><button class="s" data-o="regen" data-i="'+x.id+'">Regenerate</button><button class="s d" data-o="delete" data-i="'+x.id+'">Delete</button></div></div>'}
 function render(){
   var c={all:DATA.length,free:0,used:0,blocked:0};DATA.forEach(function(x){c[x.state]++});
   $('chips').innerHTML=['all','free','used','blocked'].map(function(s){return '<button class="f'+(F===s?' on':'')+'" data-f="'+s+'">'+(s==='all'?'All':SN[s])+' '+c[s]+'</button>'}).join('');
+  var un=DATA.filter(function(x){return !x.key}).length;$('wn').innerHTML=un?'<div class="wb"><span>'+un+' key'+(un>1?'s were':' was')+' from the old system and cannot be copied.</span><button class="s d" id="fa">Delete old keys</button></div>':'';
   var q=Q.toLowerCase();
   VIS=DATA.filter(function(x){return (F==='all'||x.state===F)&&(!q||((x.label||'')+' '+x.id).toLowerCase().indexOf(q)>=0)});
-  $('ls').innerHTML=VIS.length?VIS.map(row).join(''):'<div class="mt">'+(DATA.length?'No keys match.':'Load keys to see them here.')+'</div>';
+  $('ls').innerHTML=VIS.length?VIS.map(row).join(''):'<div class="mt">'+(DATA.length?'No keys match.':(LOADED?'No keys yet. Generate your first key above.':'Load keys to see them here.'))+'</div>';
 }
 function draw(j){
   $('m').textContent=j.ok?'':(/thik nai/i.test(j.msg||'')?'Incorrect admin secret.':(j.msg||'Something went wrong.'));
   if(!j.ok)return;
   try{localStorage.removeItem('lc_adm');sessionStorage.removeItem('lc_adm');(($('rm').checked)?localStorage:sessionStorage).setItem('lc_adm',$('sec').value)}catch(e){}
-  DATA=j.list;render();
+  DATA=j.list;LOADED=true;render();
   if(j.made&&j.made.length){var n=$('new');n.style.display='block';
     n.innerHTML='<div class="l">New keys</div>'+j.made.map(function(m){return '<div class="nk"><span>'+m.key+'</span><button class="s" data-c="'+m.key+'">Copy</button></div>'}).join('')}
 }
@@ -72,6 +75,11 @@ $('ld').onclick=async function(){draw(await api({op:'list'}))};
 $('cr').onclick=async function(){var j=await api({op:'create',label:$('lb').value,count:$('ct').value});draw(j);if(j.ok){$('lb').value='';toast('Generated')}};
 $('sr').oninput=function(){Q=this.value;render()};
 $('chips').onclick=function(e){var b=e.target.closest('button');if(b){F=b.dataset.f;render()}};
+$('wn').onclick=async function(e){if(!e.target.closest('#fa'))return;
+  var ids=DATA.filter(function(x){return !x.key}).map(function(x){return x.id});
+  if(!confirm('Delete '+ids.length+' old key'+(ids.length>1?'s':'')+' permanently? They will stop working.'))return;
+  var j;for(var i=0;i<ids.length;i++){toast('Deleting '+(i+1)+'/'+ids.length);j=await api({op:'delete',id:ids[i]});if(!j.ok){draw(j);return}}
+  draw(j);if(DATA.some(function(x){return !x.key}))toast('Server not updated. Re-upload auth.mjs');else toast('Old keys deleted')};
 $('new').onclick=function(e){var b=e.target.closest('button');if(b)cp(b.dataset.c)};
 $('ca').onclick=function(){var t=VIS.filter(function(x){return x.key}).map(function(x){return (x.label||x.id)+' \u2014 '+x.key}).join('\n');cp(t)};
 $('ls').onclick=async function(e){
