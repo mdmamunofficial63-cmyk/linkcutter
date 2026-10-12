@@ -139,11 +139,11 @@ function cut(raw){
   lines.forEach(function(ln){
     ln=ln.trim();if(!ln)return;
     var m=ln.match(/https?:\/\//i);
-    if(m){fin();cur={ser:pend,pre:ln.slice(0,m.index).trim(),link:ln.slice(m.index)};pend='';}
+    if(m){fin();var px=ln.slice(0,m.index).trim(),sn=pend,sm=px.match(/^(\d+)[.)]\s*/);if(sm){if(!sn)sn=sm[1]+'.';px=px.slice(sm[0].length)}var em=px.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);cur={ser:sn,pre:em?em[0]+'----':px,link:ln.slice(m.index)};pend='';}
     else if(cur&&!done(cur.link)&&!/^\d+[.)]?$/.test(ln)&&ln.indexOf('@')<0){cur.link+=ln;}
     else{fin();pend=ln;}
   });
-  fin();o.dup=dup;return o;
+  fin();o.forEach(function(x,i){if(!x.ser)x.ser=(i+1)+'.'});o.dup=dup;return o;
 }
 var inp=$('in'),list=$('list'),cnt=$('cnt'),toast=$('toast'),items=[],mode=0,tt;
 try{mode=+localStorage.getItem('lc_mode')||0}catch(e){}
