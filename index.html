@@ -46,6 +46,8 @@ button:disabled{opacity:.55}
 .pl input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--bd);border-radius:12px;background:var(--in);color:var(--fg);font-size:15px;font-weight:700;outline:none}
 .pl input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(99,102,241,.22)}
 #pv{font-size:12px;color:var(--mut);margin-top:7px}
+#sklist{max-height:176px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
+#skst{font-size:12px;color:var(--mut);margin-top:9px;text-align:right}
 #list{max-height:176px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
 .item{padding:8px 10px;border:1px solid var(--bd);border-radius:12px;background:var(--in);margin-bottom:6px;transition:opacity .2s;animation:in .25s ease}
 @keyframes in{from{opacity:0;transform:translateY(6px)}}
@@ -115,6 +117,13 @@ button:disabled{opacity:.55}
     <div id="list"><div class="empty">Results will appear here</div></div>
     <div id="stat"></div>
   </div>
+  <div class="sp"></div>
+  <div class="card">
+    <div class="lbl"><span>SK tokens</span><span class="chip" id="skc">0</span></div>
+    <div id="sklist"><div class="empty">SK tokens ekhane ashbe</div></div>
+    <div id="skst"></div>
+    <button class="pri" id="skcopy" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;font-size:15px;font-weight:700">Copy SK</button>
+  </div>
 
   <div class="sp"></div>
 
@@ -140,17 +149,35 @@ function cutOne(chunk){
   return t.replace(/-+$/,'');
 }
 function done(l){var t=l.replace(/\s+/g,'');return /[&?]ses/i.test(t)||/inquiry-id=inq_[A-Za-z0-9]{30}/.test(t);}
-function cut(raw){
-  var lines=raw.split(/\r?\n/),o=[],cur=null,pend='',seen={},dup=0;
-  function fin(){if(cur){var r=cutOne(cur.link);if(r){var k=cur.ser+'|'+cur.pre+'|'+r;if(seen[k])dup++;else{seen[k]=1;o.push({ser:cur.ser,pre:cur.pre,link:r})}}cur=null}}
-  lines.forEach(function(ln){
-    ln=ln.trim();if(!ln)return;
-    var m=ln.match(/https?:\/\//i);
-    if(m){fin();var px=ln.slice(0,m.index).trim(),sn=pend,sm=px.match(/^(\d+)[.)]\s*/);if(sm){if(!sn)sn=sm[1]+'.';px=px.slice(sm[0].length)}var em=px.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);cur={ser:sn,pre:em?em[0]+'----':px,link:ln.slice(m.index)};pend='';}
-    else if(cur&&!done(cur.link)&&!/^\d+[.)]?$/.test(ln)&&ln.indexOf('@')<0){cur.link+=ln;}
-    else{fin();pend=ln;}
+function joinLines(raw){
+  var L=raw.split(/\r?\n/),out='';
+  L.forEach(function(ln){
+    ln=ln.replace(/[ \t]+/g,'');if(!ln)return;
+    var k=out.lastIndexOf('https://');
+    var open=k>=0&&!/inquiry-id=inq_[A-Za-z0-9]{30}/.test(out.slice(k))&&!/----|&/.test(out.slice(k));
+    out+=(open?'':'\n')+ln;
   });
-  fin();o.forEach(function(x,i){if(!x.ser)x.ser=(i+1)+'.'});o.dup=dup;return o;
+  return out;
+}
+function cut(raw){
+  var T=joinLines(raw);
+  var re=/(https?:\/\/(?:(?!-{4})[^&\s])*?inquiry-id=inq_[A-Za-z0-9]{30}|https?:\/\/(?:(?!-{4})[^&\s])*)|(sk-ant-(?:(?!-{4})[A-Za-z0-9_\-])+)|((?:^|[^A-Za-z0-9_])(\d{1,6})(?=[.)]|-{4}))|([A-Za-z0-9](?:[A-Za-z0-9._%+]|-(?!-))*@[A-Za-z0-9.]+\.[A-Za-z]{2,})/g;
+  var m,recs=[],seen={},dup=0,pS='',pE='';
+  while((m=re.exec(T))!==null){
+    if(m[1]){
+      if(seen[m[1]]){dup++;recs.push({dup:true,sk:null})}
+      else{seen[m[1]]=1;recs.push({ser:pS,email:pE,link:m[1],sk:null})}
+      pS='';pE='';
+    }else if(m[2]){
+      var last=recs[recs.length-1];
+      if(last&&!last.sk)last.sk=m[2];
+    }else if(m[4]){pS=m[4]+'.'}
+    else if(m[5]){pE=m[5]}
+  }
+  var o=[];
+  recs.forEach(function(r){if(!r.dup)o.push({ser:r.ser,pre:r.email?r.email+'----':'',link:cutOne(r.link),sk:r.sk})});
+  o.forEach(function(x,k){if(!x.ser)x.ser=(k+1)+'.'});
+  o.dup=dup;return o;
 }
 var inp=$('in'),list=$('list'),cnt=$('cnt'),toast=$('toast'),items=[],mode=0,tt;
 try{mode=+localStorage.getItem('lc_mode')||0}catch(e){}
@@ -181,8 +208,17 @@ function drawList(){
   var p=pfxVal();
   items.forEach(function(it,i){it.disp=p?(p+(i+1)):(it.ser||'')});
   $('pv').textContent=p?('Preview: '+p+'1, '+p+'2, '+p+'3'):'Empty: 1., 2., 3.';
-  if(!items.length){list.innerHTML='<div class="empty">'+(inp.value.trim()?'No valid links found':'Results will appear here')+'</div>';upd();return}
+  if(!items.length){
+    list.innerHTML='<div class="empty">'+(inp.value.trim()?'No valid links found':'Results will appear here')+'</div>';
+    $('sklist').innerHTML='<div class="empty">SK tokens ekhane ashbe</div>';
+    $('skc').textContent='0';$('skst').textContent='';upd();return;
+  }
   list.innerHTML=items.map(function(it){return '<div class="item"><div class="t"><b>'+esc(headOf(it))+'</b>'+esc(it.link)+'</div></div>'}).join('');
+  var have=items.filter(function(it){return it.sk}).length;
+  $('skc').textContent=have;
+  $('sklist').innerHTML=items.map(function(it){return '<div class="item"><div class="t"><b>'+esc(it.disp)+'</b>'+(it.sk?esc(it.sk):'<span style="color:var(--bad)">SK not found</span>')+'</div></div>'}).join('');
+  var miss=items.length-have;
+  $('skst').textContent=miss?(miss+' link(s) without SK. Copy will skip them.'):'';
   upd();
 }
 function run(){
@@ -198,6 +234,7 @@ function segUpd(){[].forEach.call($('seg').children,function(b){b.classList.togg
 inp.addEventListener('input',run);
 $('from').addEventListener('input',upd);
 $('to').addEventListener('input',upd);
+$('skcopy').onclick=function(){var t=items.filter(function(it){return it.sk}).map(function(it){return it.disp+' '+it.sk}).join('\n');copyText(t,this)};
 $('pfx').value=(function(){try{return localStorage.getItem('lc_pfx')||''}catch(e){return ''}})();
 $('pfx').addEventListener('input',function(){try{localStorage.setItem('lc_pfx',this.value)}catch(e){}drawList()});
 drawList();
