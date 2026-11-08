@@ -321,7 +321,13 @@ async function check(k){
     var j=await r.json();return j&&typeof j.ok==='boolean'?j:{ok:false,net:1,msg:'Connection problem. Please try again.'}}
   catch(e){return {ok:false,net:1,msg:'Connection problem. Please try again.'}}
 }
-function openApp(){$('gate').style.display='none';$('app').style.display='block';if(PENDING){inp.value=PENDING;PENDING=null;run();show(items.length?('Loaded '+items.length+' link'+(items.length>1?'s':'')):'No valid links found',!items.length)}}
+function openApp(){$('gate').style.display='none';$('app').style.display='block';
+  if(PENDING!==null){
+    var p=PENDING;PENDING=null;
+    if(p){inp.value=p;run();show(items.length?('Loaded '+items.length+' link'+(items.length>1?'s':'')):'No valid links found',!items.length)}
+    else{show('Shortcut sent no text',1)}
+  }
+}
 function clr(){try{localStorage.removeItem('lc_auth');sessionStorage.removeItem('lc_auth')}catch(e){}}
 function lockApp(){clr();$('app').style.display='none';$('gate').style.display='flex';$('key').value='';$('gerr').textContent=''}
 var fails=0,until=0;
