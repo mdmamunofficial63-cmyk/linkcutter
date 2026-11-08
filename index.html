@@ -104,8 +104,9 @@ textarea:focus,input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(99,1
 
   <section class="card">
     <div class="lbl"><span>Input</span>
-      <span class="lbl-r"><button class="ghost sm" id="clear">Clear</button><button class="ghost sm" id="paste"><svg class="ic" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Paste</button></span>
+      <span class="lbl-r"><button class="ghost sm" id="openf"><svg class="ic" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Open file</button><button class="ghost sm" id="clear">Clear</button><button class="ghost sm" id="paste"><svg class="ic" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>Paste</button></span>
     </div>
+    <input type="file" id="fin" accept=".txt,text/plain" style="display:none">
     <textarea id="in" placeholder="Paste your links here. A serial number or email before each link is kept." spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
     <div id="hint"></div>
   </section>
@@ -139,6 +140,7 @@ textarea:focus,input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(99,1
 <script>
 var $=function(i){return document.getElementById(i)};
 var inp=$('in'),list=$('list'),cnt=$('cnt'),toast=$('toast'),items=[],mode=0,tt;
+var PENDING=(function(){try{var m=location.search.match(/[?&]t=([^&]*)/);if(!m)return null;var v=decodeURIComponent(m[1].replace(/\+/g,'%2B'));history.replaceState(null,'',location.pathname);return v}catch(e){return null}})();
 try{mode=+localStorage.getItem('lc_mode')||0}catch(e){}
 
 function cutOne(chunk){
@@ -287,6 +289,14 @@ $('rcopy').onclick=function(){
   copyText(items.slice(r[0]-1,r[1]).map(fmt).join('\n'),this);
 };
 $('skcopy').onclick=function(){copyText(items.filter(function(it){return it.sk}).map(function(it){return it.disp+' '+it.sk}).join('\n'),this)};
+$('openf').onclick=function(){$('fin').click()};
+$('fin').onchange=function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){inp.value=String(rd.result||'');run();var n=items.length;show(n?('Loaded '+n+' link'+(n>1?'s':'')):'No valid links in file',!n);inp.blur()};
+  rd.onerror=function(){show('Could not read file',1)};
+  rd.readAsText(f);this.value='';
+};
 $('clear').onclick=function(){inp.value='';$('from').value='';$('to').value='';$('hint').textContent='';run();inp.blur()};
 $('paste').onclick=function(){
   function manual(){inp.focus();$('hint').textContent='Automatic paste is blocked here. Tap and hold the box, then choose Paste.';setTimeout(function(){$('hint').textContent=''},8000)}
@@ -311,7 +321,7 @@ async function check(k){
     var j=await r.json();return j&&typeof j.ok==='boolean'?j:{ok:false,net:1,msg:'Connection problem. Please try again.'}}
   catch(e){return {ok:false,net:1,msg:'Connection problem. Please try again.'}}
 }
-function openApp(){$('gate').style.display='none';$('app').style.display='block'}
+function openApp(){$('gate').style.display='none';$('app').style.display='block';if(PENDING){inp.value=PENDING;PENDING=null;run();show(items.length?('Loaded '+items.length+' link'+(items.length>1?'s':'')):'No valid links found',!items.length)}}
 function clr(){try{localStorage.removeItem('lc_auth');sessionStorage.removeItem('lc_auth')}catch(e){}}
 function lockApp(){clr();$('app').style.display='none';$('gate').style.display='flex';$('key').value='';$('gerr').textContent=''}
 var fails=0,until=0;
