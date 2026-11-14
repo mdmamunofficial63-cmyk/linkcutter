@@ -158,7 +158,7 @@ function cutOne(chunk){
 function joinLines(raw){
   var L=raw.split(/\r?\n/),out='';
   L.forEach(function(ln){
-    ln=ln.replace(/[ \t]+/g,'');if(!ln)return;
+    ln=ln.replace(/\t+/g,'----').replace(/ +/g,'');if(!ln)return;
     var k=out.lastIndexOf('https://');
     var open=k>=0&&!/inquiry-id=inq_[A-Za-z0-9]{30}/.test(out.slice(k))&&!/----|&/.test(out.slice(k));
     out+=(open?'':'\n')+ln;
@@ -166,7 +166,7 @@ function joinLines(raw){
   return out;
 }
 function tokens(s){
-  var re=/(https?:\/\/(?:(?!-{4})[^&\s])*?inquiry-id=inq_[A-Za-z0-9]{30}|https?:\/\/(?:(?!-{4})[^&\s])*)|(sk-ant-(?:(?!-{4})[A-Za-z0-9_\-])+)|((?:^|[^A-Za-z0-9_])(\d{1,6})(?=[.)]|-{4}))|([A-Za-z0-9](?:[A-Za-z0-9._%+]|-(?!-))*@[A-Za-z0-9.]+\.[A-Za-z]{2,})/g;
+  var re=/(https?:\/\/(?:(?!-{4})[^&\s])*?inquiry-id=inq_[A-Za-z0-9]{30}|https?:\/\/(?:(?!-{4})[^&\s])*)|(sk-ant-(?:(?!-{4}|https?:)[A-Za-z0-9_\-])+)|((?:^|[^A-Za-z0-9_])(\d{1,6})(?=[.)]|-{4}))|([A-Za-z0-9](?:[A-Za-z0-9._%+]|-(?!-))*@[A-Za-z0-9.]+\.[A-Za-z]{2,})/g;
   var m,o=[];
   while((m=re.exec(s))!==null){
     if(m[1])o.push({t:'L',v:m[1],s:m.index,e:m.index+m[1].length});
