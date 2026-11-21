@@ -51,6 +51,7 @@ textarea:focus,input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(99,1
 .pl span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);white-space:nowrap}
 .pl input{flex:1;min-width:0;padding:10px 13px;border:1px solid var(--bd);border-radius:13px;background:var(--in);color:var(--fg);font-size:15px;font-weight:700;outline:none}
 #pv{font-size:12px;color:var(--mut);margin-top:8px}
+.sn{flex:none!important;width:84px;text-align:center}
 #list,#sklist{max-height:210px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:3px;margin-right:-3px}
 .item{position:relative;display:flex;padding:11px 13px 11px 15px;border:1px solid var(--bd);border-radius:14px;background:var(--in);margin-bottom:8px;overflow:hidden;transition:opacity .2s;animation:in .25s ease}
 .item:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(var(--g1),var(--g2))}
@@ -115,7 +116,7 @@ textarea:focus,input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(99,1
     <div class="lbl"><span>Result</span><span class="chip" id="cnt">0</span></div>
     <div class="seg" id="seg"><button data-m="0">Serial · Email · Link</button><button data-m="1">Serial · Link</button><button data-m="2">Link only</button></div>
     <div class="pfx">
-      <div class="pl"><span>Serial prefix</span><input id="pfx" maxlength="12" placeholder="Empty = 1, 2, 3" autocomplete="off" spellcheck="false"></div>
+      <div class="pl"><span>Prefix</span><input id="pfx" maxlength="12" placeholder="e.g. A" autocomplete="off" spellcheck="false"><span>Start</span><input id="start" class="sn" type="number" inputmode="numeric" min="0" max="99999" placeholder="1"></div>
       <div id="pv"></div>
     </div>
     <div id="list"><div class="empty">Results will appear here</div></div>
@@ -219,6 +220,7 @@ function show(m,bad){clearTimeout(tt);toast.textContent=m;toast.className=(bad?'
 function headOf(it){var s=it.disp||'';return (mode<2&&s?s+' ':'')+(mode===0&&it.pre?it.pre+(/[-\s]$/.test(it.pre)?'':' '):'')}
 function fmt(it){return headOf(it)+it.link}
 function pfxVal(){return ($('pfx').value||'').trim().slice(0,12)}
+function startVal(){var v=($('start').value||'').trim();return v===''?null:Math.max(0,parseInt(v,10)||0)}
 function rng(){var n=items.length,f=parseInt($('from').value)||1,t=parseInt($('to').value)||n;if(f<1)f=1;if(t>n)t=n;return [f,t]}
 
 function upd(){
@@ -229,8 +231,14 @@ function upd(){
 }
 function drawList(){
   var p=pfxVal();
-  items.forEach(function(it,i){it.disp=p?(p+(i+1)):(it.ser||'')});
-  $('pv').textContent=p?('Preview: '+p+'1, '+p+'2, '+p+'3'):'Empty: 1., 2., 3.';
+  var s=startVal(),base=(s===null?1:s);
+  var custom=!!p||s!==null;
+  items.forEach(function(it,i){
+    var n=base+i;
+    it.disp=custom?(p+n+(p?'':'.')):(it.ser||'');
+  });
+  var pe=p||'',pv1=pe+base,pv2=pe+(base+1),pv3=pe+(base+2);
+  $('pv').textContent=custom?('Preview: '+pv1+(p?'':'.')+', '+pv2+(p?'':'.')+', '+pv3+(p?'':'.')):'Empty: 1., 2., 3.';
   if(!items.length){
     list.innerHTML='<div class="empty">'+(inp.value.trim()?'No valid links found':'Results will appear here')+'</div>';
     $('skcard').style.display='none';
@@ -276,6 +284,8 @@ function segUpd(){[].forEach.call($('seg').children,function(b){b.classList.togg
 inp.addEventListener('input',run);
 $('pfx').value=(function(){try{return localStorage.getItem('lc_pfx')||''}catch(e){return ''}})();
 $('pfx').addEventListener('input',function(){try{localStorage.setItem('lc_pfx',this.value)}catch(e){}drawList()});
+$('start').value=(function(){try{return localStorage.getItem('lc_start')||''}catch(e){return ''}})();
+$('start').addEventListener('input',function(){try{localStorage.setItem('lc_start',this.value)}catch(e){}drawList()});
 $('from').addEventListener('input',upd);
 $('to').addEventListener('input',upd);
 ['from','to','key'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')e.target.blur()})});
