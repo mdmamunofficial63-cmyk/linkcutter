@@ -307,7 +307,12 @@ $('fin').onchange=function(){
   rd.onerror=function(){show('Could not read file',1)};
   rd.readAsText(f);this.value='';
 };
-$('clear').onclick=function(){inp.value='';$('from').value='';$('to').value='';$('hint').textContent='';run();inp.blur()};
+$('clear').onclick=function(){
+  inp.value='';$('from').value='';$('to').value='';$('hint').textContent='';
+  $('pfx').value='';$('start').value='';
+  try{localStorage.removeItem('lc_pfx');localStorage.removeItem('lc_start')}catch(e){}
+  run();inp.blur();
+};
 $('paste').onclick=function(){
   function manual(){inp.focus();$('hint').textContent='Automatic paste is blocked here. Tap and hold the box, then choose Paste.';setTimeout(function(){$('hint').textContent=''},8000)}
   try{navigator.clipboard.readText().then(function(t){if(t){inp.value=t;run();inp.blur()}else manual()},manual)}catch(e){manual()}
