@@ -170,7 +170,7 @@ function tokens(s){
   var re=/(https?:\/\/(?:(?!-{4})[^&\s])*?inquiry-id=inq_[A-Za-z0-9]{30}|https?:\/\/(?:(?!-{4})[^&\s])*)|(sk-ant-(?:(?!-{4}|https?:)[A-Za-z0-9_\-])+)|((?:^|[^A-Za-z0-9_])(\d{1,6})(?=[.)]|-{4}))|([A-Za-z0-9](?:[A-Za-z0-9._%+]|-(?!-))*@[A-Za-z0-9.]+\.[A-Za-z]{2,})/g;
   var m,o=[];
   while((m=re.exec(s))!==null){
-    if(m[1])o.push({t:'L',v:m[1],s:m.index,e:m.index+m[1].length});
+    if(m[1]){if(/inquiry-id=inq_/.test(m[1]))o.push({t:'L',v:m[1],s:m.index,e:m.index+m[1].length})}
     else if(m[2])o.push({t:'K',v:m[2],s:m.index,e:m.index+m[2].length});
     else if(m[4]){var st=m.index+m[0].length-m[4].length;o.push({t:'N',v:m[4],s:st,e:st+m[4].length})}
     else if(m[5])o.push({t:'M',v:m[5],s:m.index,e:m.index+m[5].length});
